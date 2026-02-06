@@ -128,7 +128,18 @@ export default function App(): JSX.Element {
         body: JSON.stringify({ checks }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || payload?.message || 'Unable to start demo session');
+      if (!response.ok) {
+        if (response.status === 429) {
+          const retryHeader = response.headers.get('Retry-After');
+          const retrySeconds = Number(retryHeader || payload?.retryAfterSeconds);
+          const retryLabel =
+            Number.isFinite(retrySeconds) && retrySeconds > 0
+              ? `Try again in ${Math.ceil(retrySeconds)}s.`
+              : 'Please wait a moment and try again.';
+          throw new Error(`Demo traffic is high. ${retryLabel}`);
+        }
+        throw new Error(payload?.error || payload?.message || 'Unable to start demo session');
+      }
       const data = payload?.data as SessionResponse;
       setSession(data);
       setStatus(data.status || 'pending');
