@@ -1,0 +1,13 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <rect width="400" height="400" rx="75" fill="url(#gradient)"/>
+  <!-- W Letter - scaled up -->
+  <path d="M 62.5 125 L 100 125 L 137.5 275 L 162.5 175 L 200 100 L 237.5 175 L 262.5 275 L 300 125 L 337.5 125 L 287.5 300 L 250 300 L 200 150 L 150 300 L 112.5 300 L 62.5 125 Z" fill="white"/>
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+</svg>
