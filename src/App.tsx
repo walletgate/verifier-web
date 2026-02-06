@@ -46,6 +46,7 @@ function formatCheckName(key: string): string {
 
 export default function App(): JSX.Element {
   const [input, setInput] = useState(DEFAULT_INPUT);
+  const [ageInput, setAgeInput] = useState(String(DEFAULT_INPUT.ageValue));
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
@@ -120,12 +121,19 @@ export default function App(): JSX.Element {
       setError('Select at least one check to continue.');
       return;
     }
+    const normalizedAge = clampAge(Number.isFinite(Number(ageInput)) ? Number(ageInput) : input.ageValue);
+    setInput((prev) => ({ ...prev, ageValue: normalizedAge }));
+    setAgeInput(String(normalizedAge));
     setLoading(true);
+    let timeoutId: number | null = null;
     try {
+      const controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller.abort(), 12000);
       const response = await fetch(`${API_BASE}/api/demo/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ checks }),
+        signal: controller.signal,
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -145,8 +153,13 @@ export default function App(): JSX.Element {
       setStatus(data.status || 'pending');
       setStartTime(Date.now());
     } catch (err: any) {
-      setError(err?.message || 'Unable to start demo session');
+      if (err?.name === 'AbortError') {
+        setError('Session creation timed out. Please try again.');
+      } else {
+        setError(err?.message || 'Unable to start demo session');
+      }
     } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -247,12 +260,22 @@ export default function App(): JSX.Element {
                 </label>
                 <input
                   className="age-input"
-                  type="number"
-                  min={13}
-                  max={99}
-                  value={input.ageValue}
-                  onChange={(e) => setInput({ ...input, ageValue: Number(e.target.value) || 0 })}
-                  onBlur={() => setInput((prev) => ({ ...prev, ageValue: clampAge(prev.ageValue) }))}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={ageInput}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (!/^\d*$/.test(next)) return;
+                    setAgeInput(next);
+                    if (next === '') return;
+                    setInput((prev) => ({ ...prev, ageValue: Number(next) }));
+                  }}
+                  onBlur={() => {
+                    const next = clampAge(Number.isFinite(Number(ageInput)) ? Number(ageInput) : input.ageValue);
+                    setInput((prev) => ({ ...prev, ageValue: next }));
+                    setAgeInput(String(next));
+                  }}
                   disabled={!input.ageEnabled}
                 />
               </div>
