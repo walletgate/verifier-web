@@ -190,13 +190,13 @@ export default function App(): JSX.Element {
 
         {/* Hero */}
         <section className="hero">
-          <div className="hero-badge">Live Interactive Demo</div>
+          <div className="hero-badge">Try the API</div>
           <h1>
-            EUDI Wallet Verification <span>— try it now</span>
+            Verify anyone in Europe <span>in seconds</span>
           </h1>
           <p className="hero-sub">
-            Configure identity checks, scan a QR with the EU Digital Identity Wallet,
-            and see results in real time. No signup required.
+            Pick your checks, hit the API, get a result. This is the same
+            integration your users will see in production.
           </p>
         </section>
 
@@ -295,10 +295,10 @@ export default function App(): JSX.Element {
                 </div>
                 <div className="scan-info">
                   <div>
-                    <h2>Waiting for wallet</h2>
+                    <h2>Scan to verify</h2>
                     <p>
-                      In production, your user scans this QR with the EU Digital Identity Wallet app.
-                      For this demo, simulate the response below.
+                      Your user opens the EUDI Wallet and scans this code.
+                      For this demo, simulate the response.
                     </p>
                   </div>
                   <div className="scan-meta">
