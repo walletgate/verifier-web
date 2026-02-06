@@ -410,7 +410,15 @@ export default function App(): JSX.Element {
             <div className="code-block">
               <span className="cm">// npm install @walletgate/eudi</span>{'\n'}
               <span className="kw">const</span> session = <span className="kw">await</span> walletgate.<span className="fn">verify</span>({'{\n'}
-              {'  '}checks: [{'{ '}type: <span className="str">'age_over'</span>, value: <span className="str">18</span>{' }'}],{'\n'}
+              {'  '}checks: [{'\n'}
+              {checks.map((c, i) => {
+                const isLast = i === checks.length - 1;
+                if (c.type === 'age_over') {
+                  return <span key={i}>{'    '}{'{ '}type: <span className="str">'age_over'</span>, value: <span className="str">{c.value ?? 18}</span>{' }'}{isLast ? '' : ','}{'\n'}</span>;
+                }
+                return <span key={i}>{'    '}{'{ '}type: <span className="str">'{c.type}'</span>{' }'}{isLast ? '' : ','}{'\n'}</span>;
+              })}
+              {'  '}],{'\n'}
               {'  '}returnUrl: <span className="str">'https://yourapp.com/done'</span>{'\n'}
               {'}'});
             </div>
