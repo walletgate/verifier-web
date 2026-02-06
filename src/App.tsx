@@ -44,9 +44,24 @@ function formatCheckName(key: string): string {
   return key;
 }
 
+function deriveChecksFromResults(results?: Record<string, boolean>) {
+  if (!results) return null;
+  const derived = Object.keys(results).map((key) => {
+    if (key.startsWith('age_over_')) {
+      const value = Number(key.replace('age_over_', ''));
+      return { type: 'age_over', value: Number.isFinite(value) ? value : 18 };
+    }
+    if (key === 'residency_eu') return { type: 'residency_eu' };
+    if (key === 'identity_verified') return { type: 'identity_verified' };
+    return { type: key as DemoCheckPayload['type'] };
+  });
+  return derived.length ? derived : null;
+}
+
 export default function App(): JSX.Element {
   const [input, setInput] = useState(DEFAULT_INPUT);
   const [ageInput, setAgeInput] = useState(String(DEFAULT_INPUT.ageValue));
+  const [selectedChecks, setSelectedChecks] = useState(() => buildChecks(DEFAULT_INPUT));
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
@@ -58,6 +73,8 @@ export default function App(): JSX.Element {
   const resultRef = useRef<HTMLDivElement>(null);
 
   const checks = useMemo(() => buildChecks(input), [input]);
+  const resultChecks = useMemo(() => deriveChecksFromResults(session?.results), [session?.results]);
+  const activeChecks = session ? (resultChecks?.length ? resultChecks : selectedChecks) : checks;
 
   const activeStep = session
     ? status === 'completed' || status === 'failed' ? 3 : 2
@@ -122,8 +139,11 @@ export default function App(): JSX.Element {
       return;
     }
     const normalizedAge = clampAge(Number.isFinite(Number(ageInput)) ? Number(ageInput) : input.ageValue);
+    const normalizedInput = { ...input, ageValue: normalizedAge };
+    const checksPayload = buildChecks(normalizedInput);
     setInput((prev) => ({ ...prev, ageValue: normalizedAge }));
     setAgeInput(String(normalizedAge));
+    setSelectedChecks(checksPayload);
     setLoading(true);
     let timeoutId: number | null = null;
     try {
@@ -132,7 +152,7 @@ export default function App(): JSX.Element {
       const response = await fetch(`${API_BASE}/api/demo/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ checks }),
+        body: JSON.stringify({ checks: checksPayload }),
         signal: controller.signal,
       });
       const payload = await response.json();
@@ -192,6 +212,8 @@ export default function App(): JSX.Element {
     setError(null);
     setStartTime(null);
     setInput(DEFAULT_INPUT);
+    setAgeInput(String(DEFAULT_INPUT.ageValue));
+    setSelectedChecks(buildChecks(DEFAULT_INPUT));
   };
 
   const allPassed = session?.results ? Object.values(session.results).every(Boolean) : false;
@@ -347,7 +369,7 @@ export default function App(): JSX.Element {
                     </div>
                     <div className="meta-row">
                       <span className="meta-label">Checks</span>
-                      <span className="meta-value">{checks.length}</span>
+                      <span className="meta-value">{activeChecks.length}</span>
                     </div>
                   </div>
                 </div>
@@ -435,8 +457,8 @@ export default function App(): JSX.Element {
               <span className="cm">// npm install @walletgate/eudi</span>{'\n'}
               <span className="kw">const</span> session = <span className="kw">await</span> walletgate.<span className="fn">verify</span>({'{\n'}
               {'  '}checks: [{'\n'}
-              {checks.map((c, i) => {
-                const isLast = i === checks.length - 1;
+              {activeChecks.map((c, i) => {
+                const isLast = i === activeChecks.length - 1;
                 if (c.type === 'age_over') {
                   return <span key={i}>{'    '}{'{ '}type: <span className="str">'age_over'</span>, value: <span className="str">{c.value ?? 18}</span>{' }'}{isLast ? '' : ','}{'\n'}</span>;
                 }
