@@ -188,7 +188,7 @@ export default function App(): JSX.Element {
       <div className="container">
         {/* Nav */}
         <nav className="nav">
-          <a className="nav-brand" href="https://walletgate.app">
+          <a className="nav-brand" href="#" onClick={(e) => { e.preventDefault(); resetDemo(); }}>
             <div className="nav-mark">W</div>
             WalletGate
           </a>

@@ -26,6 +26,39 @@
   --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-lg: 0 20px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04);
   --shadow-xl: 0 32px 80px rgba(15,23,42,0.12);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Entrance keyframes ────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes staggerUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 *,
@@ -68,6 +101,7 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  animation: fadeIn 0.6s var(--ease-out-expo) both;
 }
 
 .nav-brand {
@@ -143,6 +177,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--slate-200);
   margin-bottom: 12px;
+  animation: fadeUp 0.5s 0.1s var(--ease-out-expo) both;
 }
 
 .hero-badge::before {
@@ -165,6 +200,7 @@ body {
   letter-spacing: -0.03em;
   line-height: 1.15;
   margin-bottom: 8px;
+  animation: fadeUp 0.6s 0.15s var(--ease-out-expo) both;
 }
 
 .hero h1 span {
@@ -178,6 +214,7 @@ body {
   line-height: 1.5;
   max-width: 480px;
   margin: 0 auto;
+  animation: fadeUp 0.6s 0.25s var(--ease-out-expo) both;
 }
 
 /* ── Stepper ────────────────────────────────────────── */
@@ -188,6 +225,7 @@ body {
   gap: 0;
   margin-bottom: 16px;
   flex-shrink: 0;
+  animation: fadeUp 0.5s 0.3s var(--ease-out-expo) both;
 }
 
 .stepper-step {
@@ -197,7 +235,7 @@ body {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--slate-400);
-  transition: color 0.3s;
+  transition: color 0.4s var(--ease-out-expo);
 }
 
 .stepper-step.active {
@@ -218,12 +256,13 @@ body {
   font-weight: 700;
   background: var(--slate-100);
   color: var(--slate-400);
-  transition: all 0.3s;
+  transition: all 0.4s var(--ease-out-expo);
 }
 
 .stepper-step.active .stepper-num {
   background: var(--slate-900);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.25);
 }
 
 .stepper-step.done .stepper-num {
@@ -237,7 +276,7 @@ body {
   background: var(--slate-200);
   margin: 0 8px;
   border-radius: 1px;
-  transition: background 0.3s;
+  transition: background 0.5s var(--ease-out-expo);
 }
 
 .stepper-line.done {
@@ -258,6 +297,7 @@ body {
   padding: 24px;
   max-width: 480px;
   margin: 0 auto;
+  animation: slideUp 0.5s 0.35s var(--ease-out-expo) both;
 }
 
 .configure h2 {
@@ -287,12 +327,22 @@ body {
   border-radius: var(--radius-sm);
   background: var(--slate-50);
   border: 1px solid var(--slate-200);
-  transition: border-color 0.15s;
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.2s;
+  animation: staggerUp 0.4s var(--ease-out-expo) both;
 }
+
+.check-item:nth-child(1) { animation-delay: 0.4s; }
+.check-item:nth-child(2) { animation-delay: 0.48s; }
+.check-item:nth-child(3) { animation-delay: 0.56s; }
 
 .check-item:has(input:checked) {
   border-color: var(--blue-500);
   background: var(--blue-50);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+}
+
+.check-item:hover {
+  transform: translateY(-1px);
 }
 
 .check-label {
@@ -369,11 +419,17 @@ body {
   background: var(--slate-900);
   color: #fff;
   box-shadow: 0 4px 16px rgba(15,23,42,0.2);
+  animation: fadeUp 0.4s 0.6s var(--ease-out-expo) both;
 }
 
 .btn-start:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(15,23,42,0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15,23,42,0.3);
+}
+
+.btn-start:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(15,23,42,0.2);
 }
 
 .btn-outline {
@@ -410,6 +466,7 @@ body {
 .scan-section {
   max-width: 620px;
   margin: 0 auto;
+  animation: slideUp 0.5s var(--ease-out-expo) both;
 }
 
 .scan-layout {
@@ -426,6 +483,7 @@ body {
   padding: 10px;
   box-shadow: var(--shadow-xl);
   position: relative;
+  animation: slideInLeft 0.6s 0.1s var(--ease-out-expo) both;
 }
 
 .phone-notch {
@@ -481,6 +539,7 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 14px;
+  animation: slideInRight 0.6s 0.15s var(--ease-out-expo) both;
 }
 
 .scan-info h2 {
@@ -539,6 +598,7 @@ body {
 
 .simulate-section {
   padding: 0 24px 20px;
+  animation: fadeUp 0.5s 0.25s var(--ease-out-expo) both;
 }
 
 .simulate-label {
@@ -574,6 +634,7 @@ body {
 .results-section {
   max-width: 480px;
   margin: 0 auto;
+  animation: slideUp 0.5s var(--ease-out-expo) both;
 }
 
 .results-card {
@@ -589,22 +650,24 @@ body {
   place-items: center;
   margin: 0 auto 10px;
   font-size: 26px;
-  animation: pop 0.5s ease-out;
+  animation: pop 0.6s 0.1s var(--ease-spring) both;
 }
 
 .result-icon.success {
   background: var(--green-100);
   color: var(--green-600);
+  box-shadow: 0 0 0 6px rgba(22,163,74,0.08);
 }
 
 .result-icon.failure {
   background: var(--red-100);
   color: var(--red-600);
+  box-shadow: 0 0 0 6px rgba(220,38,38,0.08);
 }
 
 @keyframes pop {
-  0% { transform: scale(0.6); opacity: 0; }
-  60% { transform: scale(1.1); }
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.15); }
   100% { transform: scale(1); opacity: 1; }
 }
 
@@ -612,12 +675,14 @@ body {
   font-size: 1.2rem;
   font-weight: 800;
   margin-bottom: 4px;
+  animation: fadeUp 0.4s 0.2s var(--ease-out-expo) both;
 }
 
 .result-subtitle {
   font-size: 0.82rem;
   color: var(--slate-500);
   margin-bottom: 16px;
+  animation: fadeUp 0.4s 0.25s var(--ease-out-expo) both;
 }
 
 .result-stats {
@@ -628,6 +693,7 @@ body {
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 16px;
+  animation: fadeUp 0.5s 0.3s var(--ease-out-expo) both;
 }
 
 .stat {
@@ -654,6 +720,7 @@ body {
   gap: 6px;
   text-align: left;
   margin-bottom: 16px;
+  animation: fadeIn 0.3s 0.35s var(--ease-out-expo) both;
 }
 
 .result-check-row {
@@ -665,7 +732,12 @@ body {
   border-radius: 8px;
   font-size: 0.82rem;
   font-weight: 600;
+  animation: staggerUp 0.4s var(--ease-out-expo) both;
 }
+
+.result-check-row:nth-child(1) { animation-delay: 0.4s; }
+.result-check-row:nth-child(2) { animation-delay: 0.48s; }
+.result-check-row:nth-child(3) { animation-delay: 0.56s; }
 
 .check-pass {
   color: var(--green-600);
@@ -683,6 +755,7 @@ body {
   padding: 20px 0 0;
   max-width: 480px;
   margin: 0 auto;
+  animation: fadeUp 0.6s 0.5s var(--ease-out-expo) both;
 }
 
 .pitch h3 {
