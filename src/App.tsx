@@ -251,7 +251,8 @@ export default function App(): JSX.Element {
                   min={13}
                   max={99}
                   value={input.ageValue}
-                  onChange={(e) => setInput({ ...input, ageValue: clampAge(Number(e.target.value)) })}
+                  onChange={(e) => setInput({ ...input, ageValue: Number(e.target.value) || 0 })}
+                  onBlur={() => setInput((prev) => ({ ...prev, ageValue: clampAge(prev.ageValue) }))}
                   disabled={!input.ageEnabled}
                 />
               </div>
