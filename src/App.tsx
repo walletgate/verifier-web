@@ -105,7 +105,8 @@ export default function App(): JSX.Element {
     }).then(setQrDataUrl);
   }, [session?.verificationUrl]);
 
-  // Polling
+  // Polling — light fallback only; simulate already returns updated data.
+  // 10s interval keeps network quiet while still catching edge cases.
   useEffect(() => {
     if (!session?.id || (status !== 'pending' && status !== 'in_progress')) return;
     const interval = setInterval(async () => {
@@ -118,7 +119,7 @@ export default function App(): JSX.Element {
         setSession(data);
         setStatus(data.status);
       } catch { /* ignore */ }
-    }, 2000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [session?.id, status]);
 
