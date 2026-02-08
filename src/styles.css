@@ -638,26 +638,52 @@ button {
 
 .verification-notice {
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 12px;
   padding: 16px;
   background: var(--accent-light);
   border: 1px solid #bfdbfe;
   border-radius: var(--radius);
 }
 
-.notice-icon {
+.notice-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notice-header svg {
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
-.verification-notice strong {
-  font-size: 0.875rem;
-  display: block;
-  margin-bottom: 4px;
+.notice-header strong {
+  font-size: 0.9rem;
 }
 
-.verification-notice p {
-  font-size: 0.8rem;
+.notice-reqs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notice-req {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.notice-req-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.notice-explain {
+  font-size: 0.78rem;
   color: var(--muted);
   line-height: 1.5;
 }
@@ -760,30 +786,40 @@ button {
 .summary-checks {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
 .checks-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.checks-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.check-chip {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--accent-light);
-  color: var(--accent);
+  color: var(--ink);
+}
+
+.checks-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checks-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+
+.checks-item-icon {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+
+.checks-item-text {
+  font-weight: 500;
 }
 
 /* ─── Verification Modal ─── */
@@ -882,12 +918,19 @@ button {
 }
 
 .req-chip {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 12px;
   border-radius: 999px;
   background: var(--accent-light);
   color: var(--accent);
+}
+
+.req-chip-icon {
+  font-size: 0.85rem;
 }
 
 .modal-body {
@@ -1407,11 +1450,6 @@ button {
   .btn-verify {
     font-size: 0.875rem;
     padding: 14px 16px;
-  }
-
-  .verification-notice {
-    flex-direction: column;
-    gap: 10px;
   }
 
   .result-container {

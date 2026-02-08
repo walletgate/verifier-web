@@ -222,13 +222,25 @@ export default function App(): JSX.Element {
   const allPassed = session?.results ? Object.values(session.results).every(Boolean) : false;
   const shortSessionId = session?.id ? session.id.slice(0, 8) : '--------';
 
-  const requirementLabels = useMemo(() => {
+  const requirements = useMemo(() => {
     if (!selectedProduct) return [];
-    const labels: string[] = [];
-    if (selectedProduct.requires.age) labels.push(`Age ${selectedProduct.requires.age}+`);
-    if (selectedProduct.requires.residency) labels.push('EU Residency');
-    if (selectedProduct.requires.identity) labels.push('Identity Verification');
-    return labels;
+    const reqs: { icon: string; label: string; short: string }[] = [];
+    if (selectedProduct.requires.age) reqs.push({
+      icon: '\uD83D\uDDD3\uFE0F',
+      label: `You must be ${selectedProduct.requires.age} or older`,
+      short: `${selectedProduct.requires.age}+ age check`,
+    });
+    if (selectedProduct.requires.residency) reqs.push({
+      icon: '\uD83C\uDDEA\uD83C\uDDFA',
+      label: 'EU residency is required',
+      short: 'EU residency',
+    });
+    if (selectedProduct.requires.identity) reqs.push({
+      icon: '\uD83D\uDCF7',
+      label: 'Photo ID will be verified',
+      short: 'Identity check',
+    });
+    return reqs;
   }, [selectedProduct]);
 
   const elapsedSeconds = startTime && (status === 'completed' || status === 'failed')
@@ -547,17 +559,22 @@ export default function App(): JSX.Element {
               </div>
 
               <div className="verification-notice">
-                <div className="notice-icon">
+                <div className="notice-header">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M10 1L2 6v4c0 4.42 3.4 8.56 8 9.6 4.6-1.04 8-5.18 8-9.6V6l-8-5z" fill="#2563eb" fillOpacity="0.1" stroke="#2563eb" strokeWidth="1.5"/>
                     <path d="M7 10l2 2 4-4" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
+                  <strong>Identity check before payment</strong>
                 </div>
-                <div>
-                  <strong>EUDI Wallet verification required</strong>
-                  <p>This purchase requires: {requirementLabels.join(', ')}.</p>
-                  <p>You&apos;ll scan a QR code with your EU Digital Identity Wallet to complete the purchase.</p>
+                <div className="notice-reqs">
+                  {requirements.map((req) => (
+                    <div className="notice-req" key={req.short}>
+                      <span className="notice-req-icon">{req.icon}</span>
+                      <span>{req.label}</span>
+                    </div>
+                  ))}
                 </div>
+                <p className="notice-explain">You&apos;ll scan a QR code with your EU Digital Identity Wallet. No personal data is stored.</p>
               </div>
 
               {error && <p className="error-msg">{error}</p>}
@@ -616,10 +633,13 @@ export default function App(): JSX.Element {
                 {selectedProduct.fulfillment}
               </div>
               <div className="summary-checks">
-                <span className="checks-label">Required verification</span>
-                <div className="checks-list">
-                  {requirementLabels.map((label) => (
-                    <span className="check-chip" key={label}>{label}</span>
+                <span className="checks-label">Before you can pay</span>
+                <div className="checks-items">
+                  {requirements.map((req) => (
+                    <div className="checks-item" key={req.short}>
+                      <span className="checks-item-icon">{req.icon}</span>
+                      <span className="checks-item-text">{req.label}</span>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -784,8 +804,10 @@ export default function App(): JSX.Element {
             </div>
 
             <div className="modal-requirements">
-              {requirementLabels.map((label) => (
-                <span className="req-chip" key={label}>{label}</span>
+              {requirements.map((req) => (
+                <span className="req-chip" key={req.short}>
+                  <span className="req-chip-icon">{req.icon}</span> {req.short}
+                </span>
               ))}
             </div>
 
