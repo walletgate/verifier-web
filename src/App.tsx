@@ -327,11 +327,17 @@ export default function App(): JSX.Element {
       const timer = setTimeout(() => {
         setShowModal(false);
         setView('result');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 1200);
       return () => clearTimeout(timer);
     }
   }, [status]);
+
+  /* ─── Scroll to top when result view mounts ─── */
+  useEffect(() => {
+    if (view === 'result') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [view]);
 
   /* ─── API calls ─── */
   const startVerification = async () => {
