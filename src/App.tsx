@@ -1,7 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 
 import { clampAge, type DemoCheckPayload } from './lib/demo';
+
+/* ─── Syntax Highlighting (zero-dep) ─── */
+
+function highlightCode(code: string): string {
+  // Escape HTML first
+  let safe = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Strings (double, single, backtick)
+  safe = safe.replace(/(["'`])(?:(?!\1|\\).|\\.)*\1/g, '<span class="hl-str">$&</span>');
+  // Comments (// and #)
+  safe = safe.replace(/(\/\/.*|#.*)/g, '<span class="hl-cm">$&</span>');
+  // Keywords
+  safe = safe.replace(/\b(import|from|const|let|var|function|async|await|return|if|else|while|for|break|true|false|null|class|new|throw|try|catch|def|print|require|end|do|func|package|main|public|static|void|val|fun|suspend|using|response|headers)\b/g, '<span class="hl-kw">$&</span>');
+  // Numbers
+  safe = safe.replace(/\b(\d+\.?\d*)\b/g, '<span class="hl-num">$&</span>');
+  return safe;
+}
+
+/* ─── Code Tab Config ─── */
+
+type CodeLang = 'node' | 'python' | 'curl' | 'ruby' | 'go' | 'java' | 'kotlin';
+const CODE_TABS: { id: CodeLang; label: string }[] = [
+  { id: 'node', label: 'Node.js' },
+  { id: 'python', label: 'Python' },
+  { id: 'curl', label: 'cURL' },
+  { id: 'ruby', label: 'Ruby' },
+  { id: 'go', label: 'Go' },
+  { id: 'java', label: 'Java' },
+  { id: 'kotlin', label: 'Kotlin' },
+];
 
 /* ─── Types ─── */
 
@@ -210,7 +239,30 @@ export default function App(): JSX.Element {
   const [timeLeft, setTimeLeft] = useState('--:--');
   const [startTime, setStartTime] = useState<number | null>(null);
 
+  // Dark mode
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('walletgate_demo_theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+  });
+
+  // Latency tracking
+  const [createLatency, setCreateLatency] = useState<number | null>(null);
+  const [simulateLatency, setSimulateLatency] = useState<number | null>(null);
+
+  // Code snippets
+  const [codeTab, setCodeTab] = useState<CodeLang>('node');
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  // Share
+  const [shareCopied, setShareCopied] = useState(false);
+
   const topRef = useRef<HTMLDivElement>(null);
+
+  // Persist dark mode
+  useEffect(() => {
+    localStorage.setItem('walletgate_demo_theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
 
   const filteredProducts = activeCategory === 'All'
     ? PRODUCTS
@@ -256,6 +308,10 @@ export default function App(): JSX.Element {
     setStartTime(null);
     setTimeLeft('--:--');
     setShowModal(false);
+    setCreateLatency(null);
+    setSimulateLatency(null);
+    setCodeCopied(false);
+    setShareCopied(false);
   };
 
   const goToStore = () => {
@@ -343,6 +399,8 @@ export default function App(): JSX.Element {
   const startVerification = async () => {
     if (!selectedProduct) return;
     setError(null);
+    setCreateLatency(null);
+    setSimulateLatency(null);
     const checks = buildProductChecks(selectedProduct);
     if (checks.length === 0) {
       setError('No verification checks for this product.');
@@ -350,6 +408,7 @@ export default function App(): JSX.Element {
     }
     setLoading(true);
     let timeoutId: number | null = null;
+    const t0 = performance.now();
     try {
       const controller = new AbortController();
       timeoutId = window.setTimeout(() => controller.abort(), 12000);
@@ -360,6 +419,7 @@ export default function App(): JSX.Element {
         signal: controller.signal,
       });
       const payload = await response.json();
+      setCreateLatency(Math.round(performance.now() - t0));
       if (!response.ok) {
         if (response.status === 429) {
           const retryHeader = response.headers.get('Retry-After');
@@ -389,9 +449,10 @@ export default function App(): JSX.Element {
     }
   };
 
-  const simulate = async (outcome: 'pass_all' | 'fail_all') => {
+  const simulate = async (outcome: 'pass_all' | 'fail_all' | 'mixed') => {
     if (!session?.id) return;
     setLoading(true);
+    const t0 = performance.now();
     try {
       const response = await fetch(`${API_BASE}/api/demo/sessions/${session.id}/simulate`, {
         method: 'POST',
@@ -399,6 +460,7 @@ export default function App(): JSX.Element {
         body: JSON.stringify({ outcome }),
       });
       const payload = await response.json();
+      setSimulateLatency(Math.round(performance.now() - t0));
       if (!response.ok) throw new Error(payload?.error || 'Simulation failed');
       const data = payload?.data as SessionResponse;
       setSession(data);
@@ -410,9 +472,170 @@ export default function App(): JSX.Element {
     }
   };
 
+  /* ─── Code Snippets ─── */
+  const codeSnippets = useMemo<Record<CodeLang, string>>(() => {
+    const checks = selectedProduct ? buildProductChecks(selectedProduct) : [];
+    const checksStr = checks.map((c) => {
+      if (c.type === 'age_over') return `{ type: 'age_over', value: ${c.value ?? 18} }`;
+      return `{ type: '${c.type}' }`;
+    }).join(',\n    ');
+    const pyChecks = checks.map((c) => {
+      if (c.type === 'age_over') return `{"type": "age_over", "value": ${c.value ?? 18}}`;
+      return `{"type": "${c.type}"}`;
+    }).join(', ');
+    const curlChecks = JSON.stringify(checks);
+
+    return {
+      node: `// npm install @walletgate/eudi
+const WalletGate = require('@walletgate/eudi');
+const client = new WalletGate('YOUR_API_KEY');
+
+const session = await client.verify({
+  checks: [
+    ${checksStr}
+  ],
+  returnUrl: 'https://yourshop.eu/done'
+});
+
+console.log(session.verificationUrl);`,
+
+      python: `# pip install walletgate
+import requests
+
+response = requests.post(
+    'https://api.walletgate.app/v1/sessions',
+    headers={'Authorization': 'Bearer YOUR_API_KEY'},
+    json={
+        'checks': [${pyChecks}],
+        'returnUrl': 'https://yourshop.eu/done'
+    }
+)
+
+print(response.json())`,
+
+      curl: `curl -X POST https://api.walletgate.app/v1/sessions \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"checks": ${curlChecks}, "returnUrl": "https://yourshop.eu/done"}'`,
+
+      ruby: `require 'net/http'
+require 'json'
+
+uri = URI('https://api.walletgate.app/v1/sessions')
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = true
+
+request = Net::HTTP::Post.new(uri)
+request['Authorization'] = 'Bearer YOUR_API_KEY'
+request['Content-Type'] = 'application/json'
+request.body = {
+  checks: [${pyChecks}],
+  returnUrl: 'https://yourshop.eu/done'
+}.to_json
+
+response = http.request(request)
+puts response.body`,
+
+      go: `package main
+
+import (
+  "bytes"
+  "encoding/json"
+  "fmt"
+  "net/http"
+)
+
+func main() {
+  body, _ := json.Marshal(map[string]interface{}{
+    "checks":    ${curlChecks},
+    "returnUrl": "https://yourshop.eu/done",
+  })
+
+  req, _ := http.NewRequest("POST",
+    "https://api.walletgate.app/v1/sessions",
+    bytes.NewBuffer(body))
+  req.Header.Set("Authorization", "Bearer YOUR_API_KEY")
+  req.Header.Set("Content-Type", "application/json")
+
+  resp, _ := http.DefaultClient.Do(req)
+  fmt.Println(resp.Status)
+}`,
+
+      java: `import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+
+HttpClient client = HttpClient.newHttpClient();
+HttpRequest request = HttpRequest.newBuilder()
+    .uri(URI.create("https://api.walletgate.app/v1/sessions"))
+    .header("Authorization", "Bearer YOUR_API_KEY")
+    .header("Content-Type", "application/json")
+    .POST(HttpRequest.BodyPublishers.ofString(
+        "{\\"checks\\": ${curlChecks.replace(/"/g, '\\\\"')}, \\"returnUrl\\": \\"https://yourshop.eu/done\\"}"
+    ))
+    .build();
+
+HttpResponse<String> response = client.send(request,
+    HttpResponse.BodyHandlers.ofString());
+System.out.println(response.body());`,
+
+      kotlin: `import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.URI
+
+fun main() {
+    val client = HttpClient.newHttpClient()
+    val request = HttpRequest.newBuilder()
+        .uri(URI.create("https://api.walletgate.app/v1/sessions"))
+        .header("Authorization", "Bearer YOUR_API_KEY")
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("""
+            {"checks": ${curlChecks}, "returnUrl": "https://yourshop.eu/done"}
+        """.trimIndent()))
+        .build()
+
+    val response = client.send(request,
+        HttpResponse.BodyHandlers.ofString())
+    println(response.body())
+}`,
+    };
+  }, [selectedProduct]);
+
+  const copyCode = useCallback(() => {
+    void navigator.clipboard.writeText(codeSnippets[codeTab]).then(() => {
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    });
+  }, [codeSnippets, codeTab]);
+
+  const shareResult = useCallback(() => {
+    if (!selectedProduct || !session) return;
+    const checks = session.results
+      ? Object.entries(session.results).map(([k, v]) => `${formatCheckName(k)} ${v ? '\u2713' : '\u2717'}`).join(', ')
+      : '';
+    const summary = [
+      'WalletGate Demo Result',
+      `Product: ${selectedProduct.name}`,
+      `Checks: ${checks}`,
+      createLatency != null ? `API Latency: ${createLatency}ms` : '',
+      session.riskScore != null ? `Risk Score: ${Math.round(session.riskScore * 100)}%` : '',
+      elapsedSeconds != null ? `Verified in: ${elapsedSeconds}s` : '',
+      '',
+      'Try it: https://demo.walletgate.app',
+    ].filter(Boolean).join('\n');
+    void navigator.clipboard.writeText(summary).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  }, [selectedProduct, session, createLatency, elapsedSeconds]);
+
+  const productCheckCount = selectedProduct ? buildProductChecks(selectedProduct).length : 0;
+
   /* ─── Render ─── */
   return (
-    <div className="page" ref={topRef}>
+    <div className="page" ref={topRef} data-theme={darkMode ? 'dark' : 'light'}>
       {/* Nav */}
       <nav className="nav">
         <div className="nav-inner">
@@ -425,6 +648,22 @@ export default function App(): JSX.Element {
               Powered by <a href="https://walletgate.app" target="_blank" rel="noreferrer">WalletGate</a>
             </span>
             <a className="nav-link" href="https://docs.walletgate.app" target="_blank" rel="noreferrer">Docs</a>
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={() => setDarkMode((d) => !d)}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {darkMode ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </nav>
@@ -702,6 +941,17 @@ export default function App(): JSX.Element {
                   <strong>{elapsedSeconds != null ? `${elapsedSeconds}s` : '--'}</strong>
                 </div>
                 <div className="result-row">
+                  <span>API response</span>
+                  <strong>
+                    {createLatency != null && (
+                      <span className="latency-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                        {createLatency}ms
+                      </span>
+                    )}
+                  </strong>
+                </div>
+                <div className="result-row">
                   <span>Session</span>
                   <strong>{shortSessionId}</strong>
                 </div>
@@ -744,33 +994,40 @@ export default function App(): JSX.Element {
               }}>
                 Try Again
               </button>
+              <button type="button" className="btn btn-share" onClick={shareResult}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+                {shareCopied ? 'Copied!' : 'Share'}
+              </button>
             </div>
 
-            <div className="result-sdk">
+            <div className="result-sdk code-section">
               <h3>Add this flow to your app</h3>
               <p>Everything you just experienced is a single API call:</p>
+              <div className="code-header">
+                <div className="code-tabs">
+                  {CODE_TABS.map((tab) => (
+                    <button
+                      type="button"
+                      key={tab.id}
+                      className={`code-tab ${codeTab === tab.id ? 'active' : ''}`}
+                      onClick={() => setCodeTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className={`code-copy-btn ${codeCopied ? 'copied' : ''}`} onClick={copyCode}>
+                  {codeCopied ? (
+                    <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied</>
+                  ) : (
+                    <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</>
+                  )}
+                </button>
+              </div>
               <div className="code-block">
-                <span className="cm">// npm install @walletgate/eudi</span>{'\n'}
-                <span className="kw">const</span> session = <span className="kw">await</span> walletgate.<span className="fn">verify</span>({'{\n'}
-                {'  '}checks: [{'\n'}
-                {buildProductChecks(selectedProduct).map((c, i, arr) => {
-                  const isLast = i === arr.length - 1;
-                  if (c.type === 'age_over') {
-                    return (
-                      <span key={i}>
-                        {'    '}{'{ '}type: <span className="str">&apos;age_over&apos;</span>, value: <span className="str">{c.value ?? 18}</span>{' }'}{isLast ? '' : ','}{'\n'}
-                      </span>
-                    );
-                  }
-                  return (
-                    <span key={i}>
-                      {'    '}{'{ '}type: <span className="str">&apos;{c.type}&apos;</span>{' }'}{isLast ? '' : ','}{'\n'}
-                    </span>
-                  );
-                })}
-                {'  '}],{'\n'}
-                {'  '}returnUrl: <span className="str">&apos;https://yourshop.eu/done&apos;</span>{'\n'}
-                {'}'});
+                <pre dangerouslySetInnerHTML={{ __html: highlightCode(codeSnippets[codeTab]) }} />
               </div>
               <div className="sdk-links">
                 <a href="https://walletgate.app" target="_blank" rel="noreferrer" className="btn btn-primary">
@@ -854,19 +1111,24 @@ export default function App(): JSX.Element {
                     <div className="wallet-merchant-name">{selectedProduct.merchant}</div>
                     <div className="wallet-request">requests verification</div>
                     <div className="wallet-check-list">
-                      {buildProductChecks(selectedProduct).map((check, i) => (
-                        <div className="wallet-check-item" key={i}>
-                          <span className="wallet-check-label">
-                            {check.type === 'age_over' ? `Age ${check.value ?? 18}+` : formatCheckName(check.type)}
-                          </span>
-                          <span className={`wallet-check-dot ${
-                            status === 'completed' ? (allPassed ? 'pass' : 'fail') :
-                            status === 'failed' ? 'fail' : 'pending'
-                          }`} />
-                        </div>
-                      ))}
+                      {buildProductChecks(selectedProduct).map((check, i) => {
+                        const resultKey = check.type === 'age_over' ? `age_over_${check.value ?? 18}` : check.type;
+                        const checkResult = session?.results?.[resultKey];
+                        let dotClass = 'pending';
+                        if (status === 'completed' || status === 'failed') {
+                          dotClass = checkResult === true ? 'pass' : checkResult === false ? 'fail' : (allPassed ? 'pass' : 'fail');
+                        }
+                        return (
+                          <div className="wallet-check-item" key={i}>
+                            <span className="wallet-check-label">
+                              {check.type === 'age_over' ? `Age ${check.value ?? 18}+` : formatCheckName(check.type)}
+                            </span>
+                            <span className={`wallet-check-dot ${dotClass}`} />
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="wallet-actions">
+                    <div className={`wallet-actions ${productCheckCount >= 2 ? 'three-btns' : ''}`}>
                       <button
                         className="wallet-btn wallet-btn-approve"
                         onClick={() => simulate('pass_all')}
@@ -874,6 +1136,15 @@ export default function App(): JSX.Element {
                       >
                         Approve
                       </button>
+                      {productCheckCount >= 2 && (
+                        <button
+                          className="wallet-btn wallet-btn-mixed"
+                          onClick={() => simulate('mixed')}
+                          disabled={!session || loading || status === 'completed' || status === 'failed'}
+                        >
+                          Mixed
+                        </button>
+                      )}
                       <button
                         className="wallet-btn wallet-btn-decline"
                         onClick={() => simulate('fail_all')}
@@ -898,7 +1169,11 @@ export default function App(): JSX.Element {
               </div>
               <div>
                 <span>Checks</span>
-                <strong>{buildProductChecks(selectedProduct).length}</strong>
+                <strong>{productCheckCount}</strong>
+              </div>
+              <div>
+                <span>Latency</span>
+                <strong>{createLatency != null ? <span className="latency-badge">{createLatency}ms</span> : '--'}</strong>
               </div>
             </div>
           </div>
