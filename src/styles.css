@@ -1629,6 +1629,14 @@ button {
   font-weight: 600;
 }
 
+/* ─── Prevent iOS Safari auto-zoom on input focus ─── */
+
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* ─── Responsive ─── */
 
 @media (max-width: 768px) {
