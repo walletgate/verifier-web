@@ -674,7 +674,7 @@ fun main() {
           <header className="store-hero">
             <div className="store-hero-content">
               <span className="store-badge">Demo Storefront</span>
-              <h1>Age-verified shopping, powered by EUDI Wallet</h1>
+              <h1>Identity-verified shopping, powered by EUDI Wallet</h1>
               <p>
                 Browse real product categories that require age, residency, or identity checks under EU law.
                 Pick any item, go through checkout, and experience EUDI wallet verification in action.
@@ -1142,7 +1142,7 @@ fun main() {
                           onClick={() => simulate('mixed')}
                           disabled={!session || loading || status === 'completed' || status === 'failed'}
                         >
-                          Mixed
+                          Partial
                         </button>
                       )}
                       <button
