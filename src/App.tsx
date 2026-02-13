@@ -264,6 +264,35 @@ export default function App(): JSX.Element {
     localStorage.setItem('walletgate_demo_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
+  // Detect return from hosted verification page (?session_id=...&result=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const returnSessionId = params.get('session_id');
+    const returnResult = params.get('result');
+    if (!returnSessionId || !returnResult) return;
+
+    // Clean up URL
+    window.history.replaceState({}, '', window.location.pathname);
+
+    // Fetch the completed session and show confirmation
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/demo/sessions/${returnSessionId}`);
+        if (!res.ok) return;
+        const payload = await res.json();
+        const data = payload?.data as SessionResponse | undefined;
+        if (!data) return;
+        setSession(data);
+        setStatus(data.status);
+        // Pick a random product to show context
+        if (!selectedProduct) {
+          setSelectedProduct(PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)]);
+        }
+      } catch { /* ignore — user can still navigate normally */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const filteredProducts = activeCategory === 'All'
     ? PRODUCTS
     : PRODUCTS.filter((p) => p.category === activeCategory);
@@ -415,7 +444,11 @@ export default function App(): JSX.Element {
       const response = await fetch(`${API_BASE}/api/demo/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ checks }),
+        body: JSON.stringify({
+          checks,
+          successUrl: window.location.origin,
+          cancelUrl: window.location.origin,
+        }),
         signal: controller.signal,
       });
       const payload = await response.json();
