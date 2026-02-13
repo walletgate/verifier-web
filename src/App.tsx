@@ -494,34 +494,37 @@ const session = await client.verify({
   checks: [
     ${checksStr}
   ],
-  returnUrl: 'https://yourshop.eu/done'
+  successUrl: 'https://yourshop.eu/done',
+  cancelUrl: 'https://yourshop.eu/checkout'
 });
 
-console.log(session.verificationUrl);`,
+// Redirect user to session.hostedUrl — we handle the rest
+console.log(session.hostedUrl);`,
 
-      python: `# pip install walletgate
-import requests
+      python: `import requests
 
 response = requests.post(
-    'https://api.walletgate.app/v1/sessions',
+    'https://api.walletgate.app/verify/sessions',
     headers={'Authorization': 'Bearer YOUR_API_KEY'},
     json={
         'checks': [${pyChecks}],
-        'returnUrl': 'https://yourshop.eu/done'
+        'successUrl': 'https://yourshop.eu/done',
+        'cancelUrl': 'https://yourshop.eu/checkout'
     }
 )
 
-print(response.json())`,
+# Redirect user to data.hostedUrl
+print(response.json()['data']['hostedUrl'])`,
 
-      curl: `curl -X POST https://api.walletgate.app/v1/sessions \\
+      curl: `curl -X POST https://api.walletgate.app/verify/sessions \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"checks": ${curlChecks}, "returnUrl": "https://yourshop.eu/done"}'`,
+  -d '{"checks": ${curlChecks}, "successUrl": "https://yourshop.eu/done", "cancelUrl": "https://yourshop.eu/checkout"}'`,
 
       ruby: `require 'net/http'
 require 'json'
 
-uri = URI('https://api.walletgate.app/v1/sessions')
+uri = URI('https://api.walletgate.app/verify/sessions')
 http = Net::HTTP.new(uri.host, uri.port)
 http.use_ssl = true
 
@@ -530,11 +533,12 @@ request['Authorization'] = 'Bearer YOUR_API_KEY'
 request['Content-Type'] = 'application/json'
 request.body = {
   checks: [${pyChecks}],
-  returnUrl: 'https://yourshop.eu/done'
+  successUrl: 'https://yourshop.eu/done',
+  cancelUrl: 'https://yourshop.eu/checkout'
 }.to_json
 
 response = http.request(request)
-puts response.body`,
+puts JSON.parse(response.body)['data']['hostedUrl']`,
 
       go: `package main
 
@@ -547,12 +551,13 @@ import (
 
 func main() {
   body, _ := json.Marshal(map[string]interface{}{
-    "checks":    ${curlChecks},
-    "returnUrl": "https://yourshop.eu/done",
+    "checks":     ${curlChecks},
+    "successUrl": "https://yourshop.eu/done",
+    "cancelUrl":  "https://yourshop.eu/checkout",
   })
 
   req, _ := http.NewRequest("POST",
-    "https://api.walletgate.app/v1/sessions",
+    "https://api.walletgate.app/verify/sessions",
     bytes.NewBuffer(body))
   req.Header.Set("Authorization", "Bearer YOUR_API_KEY")
   req.Header.Set("Content-Type", "application/json")
@@ -568,11 +573,11 @@ import java.net.URI;
 
 HttpClient client = HttpClient.newHttpClient();
 HttpRequest request = HttpRequest.newBuilder()
-    .uri(URI.create("https://api.walletgate.app/v1/sessions"))
+    .uri(URI.create("https://api.walletgate.app/verify/sessions"))
     .header("Authorization", "Bearer YOUR_API_KEY")
     .header("Content-Type", "application/json")
     .POST(HttpRequest.BodyPublishers.ofString(
-        "{\\"checks\\": ${curlChecks.replace(/"/g, '\\\\"')}, \\"returnUrl\\": \\"https://yourshop.eu/done\\"}"
+        "{\\"checks\\": ${curlChecks.replace(/"/g, '\\\\"')}, \\"successUrl\\": \\"https://yourshop.eu/done\\", \\"cancelUrl\\": \\"https://yourshop.eu/checkout\\"}"
     ))
     .build();
 
@@ -588,11 +593,11 @@ import java.net.URI
 fun main() {
     val client = HttpClient.newHttpClient()
     val request = HttpRequest.newBuilder()
-        .uri(URI.create("https://api.walletgate.app/v1/sessions"))
+        .uri(URI.create("https://api.walletgate.app/verify/sessions"))
         .header("Authorization", "Bearer YOUR_API_KEY")
         .header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString("""
-            {"checks": ${curlChecks}, "returnUrl": "https://yourshop.eu/done"}
+            {"checks": ${curlChecks}, "successUrl": "https://yourshop.eu/done", "cancelUrl": "https://yourshop.eu/checkout"}
         """.trimIndent()))
         .build()
 
@@ -1094,6 +1099,17 @@ fun main() {
                     rel="noreferrer"
                   >
                     Open in EUDI Wallet
+                  </a>
+                )}
+                {session?.id && (
+                  <a
+                    className="btn btn-outline"
+                    href={`${API_BASE}/verify/${session.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: '0.8rem', marginTop: '8px' }}
+                  >
+                    Open hosted verification page
                   </a>
                 )}
               </div>
