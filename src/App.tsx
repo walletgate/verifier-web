@@ -1034,6 +1034,13 @@ fun main() {
               <div className="code-block">
                 <pre dangerouslySetInnerHTML={{ __html: highlightCode(codeSnippets[codeTab]) }} />
               </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '12px 0 0' }}>
+                Or skip the custom UI — redirect users to our{' '}
+                <a href="https://docs.walletgate.app/hosted-verification" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
+                  hosted verification page
+                </a>{' '}
+                and we handle everything.
+              </p>
               <div className="sdk-links">
                 <a href="https://walletgate.app" target="_blank" rel="noreferrer" className="btn btn-primary">
                   Get free API key
@@ -1099,17 +1106,6 @@ fun main() {
                     rel="noreferrer"
                   >
                     Open in EUDI Wallet
-                  </a>
-                )}
-                {session?.id && (
-                  <a
-                    className="btn btn-outline"
-                    href={`${API_BASE}/verify/${session.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: '0.8rem', marginTop: '8px' }}
-                  >
-                    Open hosted verification page
                   </a>
                 )}
               </div>
