@@ -284,6 +284,7 @@ export default function App(): JSX.Element {
         if (!data) return;
         setSession(data);
         setStatus(data.status);
+        setView('result');
         // Pick a random product to show context
         if (!selectedProduct) {
           setSelectedProduct(PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)]);
@@ -1132,14 +1133,20 @@ fun main() {
                   )}
                 </div>
                 {session?.verificationUrl && (
-                  <a
-                    className="btn btn-deeplink"
-                    href={session.verificationUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open in EUDI Wallet
-                  </a>
+                  <div className="deeplink-section">
+                    <span className="deeplink-hint">Or open directly on this device</span>
+                    <a
+                      className="btn btn-deeplink"
+                      href={session.verificationUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 1L2 6v4c0 4.42 3.4 8.56 8 9.6 4.6-1.04 8-5.18 8-9.6V6l-8-5z" fill="rgba(255,255,255,0.25)" stroke="#fff" strokeWidth="1.5"/>
+                      </svg>
+                      Open in EUDI Wallet
+                    </a>
+                  </div>
                 )}
               </div>
 
